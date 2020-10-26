@@ -1,2 +1,2 @@
-# ssr_controler
+# ssr_controller
 SSR制御スクリプト
