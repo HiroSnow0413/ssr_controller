@@ -1,21 +1,27 @@
 import keyboard
-
-import ssr
-import temp_reader
+import time
+from ssr import Ssr
+from temp_reader import TempReader
 
 
 def main():
 
-    temp_reader = TempReader()
-    # ssr[]
-    temp_reader.start()
-    time.sleep(3)
+    str_port_list = ["/dev/ttyUSB0",  "/dev/ttyUSB1",  "/dev/ttyUSB2"]
+    temp_reader = [None, None, None]
+    rate = 115200
+    for i, str_port in enumerate(str_port_list):
+        save_file = f"output_{i}.txt"
+        temp_reader[i] = TempReader(str_port=str_port, rate=rate, save_file=save_file)
+        # ssr[]
+        temp_reader[i].start()
+    time.sleep(20)
 
-    keyboard.wait("esc")
+    # keyboard.wait("esc")
 
-    temp_reader.join()
-    print ('exiting at temp_reader.join')
-    temp_reader.close()
+    for i, str_port in enumerate(str_port_list):
+        temp_reader[i].join()
+        print ('exiting at temp_reader.join')
+        temp_reader[i].close()
 
 
 if __name__ == "__main__":

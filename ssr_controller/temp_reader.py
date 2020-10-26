@@ -6,14 +6,14 @@ from threading import Event, Thread
 import RPi.GPIO as GPIO
 
 
-class TempReader(threading.Thread):
-    def __init__(self, port, rate, save_file=None):
-        threading.Thread.__init__(self)
+class TempReader(Thread):
+    def __init__(self, str_port, rate, save_file=None):
+        Thread.__init__(self)
 
-        self.port = port
+        self.str_port = str_port
         self.rate = rate
 
-        self.ser = serial.Serial(port, rate, timeout = timeout) #20200627 115200->19200
+        self.ser = serial.Serial(str_port, rate, timeout = 0) #20200627 115200->19200
         self.ser.send_break()
         self.ser.reset_input_buffer
         self.ser.reset_input_buffer
@@ -34,13 +34,18 @@ class TempReader(threading.Thread):
 
     def run(self):
 
+        event = Event()
+        event.set()
+
+        time.sleep(3)
+        
         while True:
             try:
                 buff_waiting = self.ser.in_waiting
                 if buff_waiting > 0:
                     line_byte = self.ser.readline()
                     line_byte = line_byte.decode(encoding='utf-8')
-                    temperatures[]=line_byte.split(',')
+                    temperatures=line_byte.split(',')
                     self.fw.write(",".join(temperatures))
                     print(f"line_s = {temperatures}") 
                     """
@@ -48,11 +53,12 @@ class TempReader(threading.Thread):
                     tempertures[2]
                     """
                     # q.put(line_byte)
-                    if False :
-                        print(buff_waiting, q.qsize(), line_byte)
+                    # if False :
+                    #     print(buff_waiting, q.qsize(), line_byte)
                     event.wait()
             except KeyboardInterrupt:
                 print ('exiting thread-1 in port_read')
+                self.close()
                 sys.exit
     
     def close():
