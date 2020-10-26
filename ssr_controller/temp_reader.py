@@ -10,6 +10,7 @@ class TempReader(Thread):
     def __init__(self, str_port, rate, save_file=None):
         Thread.__init__(self)
 
+        self.running = True
         self.str_port = str_port
         self.rate = rate
 
@@ -38,8 +39,8 @@ class TempReader(Thread):
         event.set()
 
         time.sleep(3)
-        
-        while True:
+
+        while self.running:
             try:
                 buff_waiting = self.ser.in_waiting
                 if buff_waiting > 0:
@@ -47,7 +48,7 @@ class TempReader(Thread):
                     line_byte = line_byte.decode(encoding='utf-8')
                     temperatures=line_byte.split(',')
                     self.fw.write(",".join(temperatures))
-                    print(f"line_s = {temperatures}") 
+                    print(f"{self.running}, line_s = {temperatures}") 
                     """
                     T_measは、Tc-1なので、これをPIDの計測値としてPID制御をする。
                     tempertures[2]
@@ -58,10 +59,13 @@ class TempReader(Thread):
                     event.wait()
             except KeyboardInterrupt:
                 print ('exiting thread-1 in port_read')
-                self.close()
-                sys.exit
-    
-    def close():
+                self.ser.close()
+                self.fw.close()
+                sys.exit()
+        
         self.ser.close()
         self.fw.close()
+    
+    def close(self):
+        self.running = False
 
