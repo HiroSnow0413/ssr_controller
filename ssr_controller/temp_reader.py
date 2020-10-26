@@ -5,11 +5,13 @@ import time
 from threading import Event, Thread
 import RPi.GPIO as GPIO
 
+# import setting
+
 
 class TempReader(Thread):
-    def __init__(self, str_port, rate, save_file=None):
+    def __init__(self, str_port, rate, q_tc_temp, save_file=None):
         Thread.__init__(self)
-
+        self.q_tc_temp = q_tc_temp
         self.running = True
         self.str_port = str_port
         self.rate = rate
@@ -21,15 +23,16 @@ class TempReader(Thread):
         self.ser.reset_input_buffer
         self.ser.reset_input_buffer
         line_byte = self.ser.readline()  #一回、読み飛ばしをかける
+        # line_byte = line_byte.decode(encoding='utf-8')
+        # temperatures = line_byte.split(',')
+        # print(f"[Debug] line_s = {temperatures}")
+        # self.q_tc_temp.put(temperatures[2])
+        # print(f"{self.str_port}, {q_tc_temp.qsize()}")
         #一回バッファークリアしないといけない？？？
         self.ser.reset_input_buffer
-
         
-        regex = re.compile('\d+')  # for extracting number from strings
+        # regex = re.compile('\d+')
         self.fw = open(save_file, "w+")
-        y = [0]*100
-        data = []
-        itime = 0
 
         time.sleep(0.2)
 
@@ -39,16 +42,19 @@ class TempReader(Thread):
         event.set()
 
         time.sleep(3)
-
         while self.running:
             try:
                 buff_waiting = self.ser.in_waiting
+
+                # print(f"buff_waiting: {buff_waiting}")
                 if buff_waiting > 0:
                     line_byte = self.ser.readline()
                     line_byte = line_byte.decode(encoding='utf-8')
                     temperatures=line_byte.split(',')
                     self.fw.write(",".join(temperatures))
-                    print(f"{self.running}, line_s = {temperatures}") 
+                    # print(f"line_s = {temperatures}")
+                    self.q_tc_temp.put(temperatures[2])
+                    # print(f"{self.str_port}, {self.q_tc_temp.qsize()}")
                     """
                     T_measは、Tc-1なので、これをPIDの計測値としてPID制御をする。
                     tempertures[2]
@@ -67,5 +73,6 @@ class TempReader(Thread):
         self.fw.close()
     
     def close(self):
+        print(f"close usb: {self.str_port}")
         self.running = False
 
