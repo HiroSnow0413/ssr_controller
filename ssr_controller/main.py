@@ -47,6 +47,8 @@ def main():
             ssr.close()
             time.sleep(0.1)
 
+        time.sleep(1)
+
         for i, temp_reader in enumerate(list_temp_reader):
             # print (f"exiting at temp_reader.join({i})")
             temp_reader.close()
