@@ -18,7 +18,7 @@ import RPi.GPIO as GPIO
 MAX_PWM_WIDTH = 10
 
 class SsrDriver(Thread):
-    def __init__(self, group, q_tc_tem, target_temp=200):
+    def __init__(self, group, q_tc_tem, target_temp=20):
         Thread.__init__(self)
         self.ssr_pins = group["ssr_pins"]
         print(f"init SSR PIN({self.ssr_pins})")
@@ -121,6 +121,6 @@ class SsrDriver(Thread):
         外部からSSR制御のスレッド停止用
         """
 
-        print(f"close SSR: {self.pin_num}")
+        print(f"close SSR: {self.ssr_pins}")
         self.running = False
 
