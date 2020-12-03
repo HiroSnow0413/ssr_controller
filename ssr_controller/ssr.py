@@ -11,52 +11,57 @@ import RPi.GPIO as GPIO
 
     設定温度：target_temp
     出力ピン：pin_num
-    温度取得キュー：q_tc_temp
+    温度取得キュー：tc_queue_dict
 
 """
 
 MAX_PWM_WIDTH = 10
 
-class SsrController(Thread):
-    def __init__(self, pin_num, q_tc_temp, target_temp=200):
+class SsrDriver(Thread):
+    def __init__(self, group, q_tc_tem, target_temp=200):
         Thread.__init__(self)
-        print(f"init SSR PIN({pin_num})")
+        self.ssr_pins = group["ssr_pins"]
+        print(f"init SSR PIN({self.ssr_pins})")
 
         # 設定
         self.target_temp = target_temp
-        self.q_tc_temp = q_tc_temp
-        self.pin_num = pin_num
+        self.kp = 0.1
+        self.tc_queue_dict = tc_queue_dict
 
         self.running = True     # 外部からスレッドを止める用フラグ
 
         self.d_temp = None      # 温度差（将来PID制御用）
 
         GPIO.setmode(GPIO.BCM)
-        GPIO.setup(pin_num, GPIO.OUT)
-        time.sleep(0.1)
-        GPIO.output(self.pin_num, False)
+        for pin_num in self.ssr_pins:
+            GPIO.setup(pin_num, GPIO.OUT)
+            time.sleep(0.1)
+            GPIO.output(pin_num, False)
+            time.sleep(0.1)
+
 
     def run(self):
 
         time.sleep(0.2)
-        print(f"start SSR PIN({self.pin_num})")
+        print(f"start SSR PIN({self.ssr_pins})")
   
         while self.running:
 
             try:
                 list_tc_temp = []
                 # キューが空になるまで取得
-                while not self.q_tc_temp.empty():
-                    list_tc_temp.append(float(self.q_tc_temp.get()))
-                # キューから温度を取得
-                if len(list_tc_temp) > 0:
+                while len(list_tc_temp) < 0:
+                    # キューから温度を取得
+                    for idx in self.tc_queue_dict.keys():
+                        while not self.tc_queue_dict[idx].empty():
+                            list_tc_temp.append(float(self.tc_queue_dict[idx].get()))
                     
-                    # キューに入っている温度の平均
-                    tc_temp = sum(list_tc_temp) / len(list_tc_temp)
+                # キューに入っている温度の平均
+                tc_temp_avg = sum(list_tc_temp) / len(list_tc_temp)
 
-                    print(f"SSR({self.pin_num}) Tc: {tc_temp:.2f}")
-                    pwm_width = self.get_pwm_width(self.target_temp, tc_temp)
-                    self.set_pwm_width(pwm_width)
+                print(f"SSR({self.pin_num}) Tc: {tc_temp:.2f}")
+                pwm_width = self.get_pwm_width(self.target_temp, tc_temp_avg)
+                self.set_pwm_width(pwm_width)
                 # time.sleep(1)
             except KeyboardInterrupt:
                 print (f'exiting thread-1 in temp_read({self.pin_num})')
@@ -66,14 +71,15 @@ class SsrController(Thread):
     def get_pwm_width(self, target_temp, tc_temp):
         """
             PWM幅の計算
-            設定温度との温度差 * 0.1
-
+            P制御：設定温度との温度差 * 0.1
+            I制御：未実装
+            D制御：未実装
         """
 
         if self.d_temp is None:
             self.d_temp = target_temp - tc_temp
         
-        pwm_width = round( (target_temp - tc_temp) / 10 )
+        pwm_width = round( (target_temp - tc_temp) * self.kp )
 
         # print(f"pwm_width = {pwm_width} befor limit")
         # PWM幅を制限 MAX 10
@@ -95,13 +101,20 @@ class SsrController(Thread):
         on_time = pwm_total_time * pwm_width / MAX_PWM_WIDTH
         off_time = pwm_total_time * (MAX_PWM_WIDTH - pwm_width) / MAX_PWM_WIDTH
         # print(f"on: {on_time}, off: {off_time}")
-        GPIO.output(self.pin_num, True)
+        for pin_num in self.ssr_pins:
+            GPIO.output(pin_num, True)
         time.sleep(on_time)
-        GPIO.output(self.pin_num, False)
+        for pin_num in self.ssr_pins:
+            GPIO.output(pin_num, False)
         time.sleep(off_time)
 
         print(f"SSR({self.pin_num}) pwm_width = {pwm_width}")
 
+    def set_target_temp(self, target_temp):
+        self.target_temp = target_temp
+
+    def set_kp(self, kp):
+        self.kp = kp
 
     def close(self):
         """
