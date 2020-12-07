@@ -2,9 +2,7 @@
     "explain":"Tcのリスト、tc_indexには監視対象のindexのリストを記載",
         
     "Tc": {
-        "/dev/ttyUSB0": {"index": [0,1,2,3,4,5,6,7,8,9]},
-        "/dev/ttyUSB1": {"index": [0,1,2,3,4,5,6,7,8,9]},
-        "/dev/ttyUSB2": {"index": [0,1,2,3,4,5,6,7,8,9]}
+        "/dev/ttyUSB0": {"index": [0,1,2,3,4,5,6,7,8,9]}
     },
     
     "explain": "SSRのリスト、group 別にssr_pinsとtc_indexは１つのロジックで稼働する",
@@ -12,18 +10,18 @@
         {
             "group"    : 0,
             "ssr_pins" : [2, 4],
-            "tc_index" : {
-                "/dev/ttyUSB0": 0,
-                "/dev/ttyUSB0": 2
-            }
+            "tc_index" : [
+                ["/dev/ttyUSB0", 0],
+                ["/dev/ttyUSB0", 2]
+            ]
         },
         {
             "group"    : 1,
             "ssr_pins" : [3, 9],
-            "tc_index" : {
-                "/dev/ttyUSB0": 1,
-                "/dev/ttyUSB0": 2
-            }
+            "tc_index" : [
+                ["/dev/ttyUSB0", 1],
+                ["/dev/ttyUSB0", 2]
+            ]
         }
     ]
     }

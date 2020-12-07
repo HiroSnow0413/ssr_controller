@@ -18,12 +18,13 @@ import RPi.GPIO as GPIO
 MAX_PWM_WIDTH = 10
 
 class SsrDriver(Thread):
-    def __init__(self, group, q_tc_tem, target_temp=20):
+    def __init__(self, group, tc_queue_dict, target_temp=20):
         Thread.__init__(self)
         self.ssr_pins = group["ssr_pins"]
         print(f"init SSR PIN({self.ssr_pins})")
 
         # 設定
+        self.group = group
         self.target_temp = target_temp
         self.kp = 0.1
         self.tc_queue_dict = tc_queue_dict
@@ -50,11 +51,12 @@ class SsrDriver(Thread):
             try:
                 list_tc_temp = []
                 # キューが空になるまで取得
-                while len(list_tc_temp) < 0:
+                while len(list_tc_temp) < 1:
                     # キューから温度を取得
-                    for idx in self.tc_queue_dict.keys():
-                        while not self.tc_queue_dict[idx].empty():
-                            list_tc_temp.append(float(self.tc_queue_dict[idx].get()))
+                    for input_port in self.group["tc_index"]:
+                        # print(self.tc_queue_dict[input_port[0]])
+                        while not self.tc_queue_dict[input_port[0]][input_port[1]].empty():
+                            list_tc_temp.append(float(self.tc_queue_dict[input_port[0]][input_port[1]].get()))
                     
                 # キューに入っている温度の平均
                 tc_temp_avg = sum(list_tc_temp) / len(list_tc_temp)
@@ -66,6 +68,9 @@ class SsrDriver(Thread):
             except KeyboardInterrupt:
                 print (f'exiting thread-1 in temp_read({self.pin_num})')
                 self.close()
+
+            
+        print(f"exit SSR: {self.ssr_pins}")
 
   
     def get_pwm_width(self, target_temp, tc_temp):
@@ -120,7 +125,6 @@ class SsrDriver(Thread):
         """
         外部からSSR制御のスレッド停止用
         """
-
         print(f"close SSR: {self.ssr_pins}")
         self.running = False
 

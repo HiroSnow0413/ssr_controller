@@ -74,7 +74,7 @@ def main():
         # 温度取得スレッド終了処理
         for i, str_port in enumerate(tc_readers_dict.keys()):
             # print (f"exiting at temp_reader.join({i})")
-            tc_readers_dict[str_port]["reader"].close()
+            tc_readers_dict[str_port].close()
             time.sleep(0.1)
 
 
