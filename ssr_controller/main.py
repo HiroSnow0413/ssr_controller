@@ -36,7 +36,7 @@ def main():
         for idx in config["Tc"][str_port]["index"]:
             tc_queue_dict[str_port][idx] = queue.Queue(maxsize=q_maxsize)
         
-        save_file = f"output_{str_port[-4]}.txt"
+        save_file = f"output_{str_port[-4]}.txt"   # str_port[-4]  −４の意味が不明 {201212}
         tc_readers_dict[str_port] = TempReader(str_port=str_port, rate=rate, save_file=save_file, tc_queue_dict=tc_queue_dict)
         tc_readers_dict[str_port].start() # スレッドを起動
         time.sleep(1)
@@ -44,9 +44,9 @@ def main():
     # SSR制御スレッド
     # スレッド起動
     ssr_group_dict = {}
-    for i, group in enumerate(config["SSR"]):
+    for i, group in enumerate(config["SSR"]):   #ここでGroup別にイテレーションLoopに。{201212}
         ssr_group_dict[i] = SsrDriver(group, tc_queue_dict=tc_queue_dict)
-        ssr_group_dict[i].start()
+        ssr_group_dict[i].start()    #ここで起動１
 
     # ここから Ctrl-C が押されるまで無限ループ
     try:
@@ -54,7 +54,7 @@ def main():
             # ここに処理を記載
             time.sleep(1)
             # 例
-            ssr_group_dict[0].set_target_temp(200)
+            ssr_group_dict[0].set_target_temp(200)   #目標温度をGroup別に。＜＝＝別の制御を書きたい
             ssr_group_dict[1].set_target_temp(200)
             # print(f"que_len: {q_tc_temp.qsize()}")
             pass
