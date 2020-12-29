@@ -1,4 +1,5 @@
 import serial, sys, queue
+from collections import deque
 import re
 import time
 from threading import Event, Thread
@@ -10,11 +11,17 @@ import RPi.GPIO as GPIO
 """
 
 class TempReader(Thread):
-    def __init__(self, str_port, rate, tc_queue_dict, save_file=None):
+    def __init__(self, str_port, rate, tc_index, q_maxlen, save_file=None):
         Thread.__init__(self)
 
         # 温度用のキュー
-        self.tc_queue_dict = tc_queue_dict[str_port]
+        self.tc_index = tc_index
+        self.q_maxlen = q_maxlen
+        self.tc_queue_dict = {}
+        self.tc_now = {}
+        for idx in tc_index:
+            self.tc_queue_dict[idx] = deque(maxlen=q_maxlen)
+            self.tc_now[idx] = None
 
         # 外部からスレッド停止用
         self.running = True
@@ -62,10 +69,12 @@ class TempReader(Thread):
                 # print(f"line_s = {temperatures}")
 
                 # キューに温度をいれる（SSR制御で使用）
-                for idx in self.tc_queue_dict.keys():
-                    if idx == 1:
-                        print(temperatures[idx])
-                    self.tc_queue_dict[idx].put(temperatures[idx])
+                print(f"{self.str_port}: {temperatures}")
+                for idx in self.tc_index:
+                    # if idx == 1:
+                    #     print(temperatures[idx])
+                    self.tc_queue_dict[idx].append(temperatures[idx])
+                    self.tc_now = temperatures[idx]
                 # print(f"{self.str_port}, {self.tc_queue_dict.qsize()}")
                 """
                 T_measは、Tc-1なので、これをPIDの計測値としてPID制御をする。
@@ -86,3 +95,15 @@ class TempReader(Thread):
         """
         print(f"close usb: {self.str_port}")
         self.running = False
+
+    def get_tc_now(self, idx):
+
+        return self.tc_now[idx]
+
+    def get_tc_average(self, idx):
+
+        total = 0
+        for tc_hist in self.tc_queue_dict[idx]:
+            total += tc_hist
+
+        return total / self.q_maxlen

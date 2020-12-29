@@ -11,55 +11,54 @@ import RPi.GPIO as GPIO
 
     設定温度：target_temp
     出力ピン：pin_num
-    温度取得キュー：tc_queue_dict
+    温度取得キュー：tc_readers_dict
 
 """
 
 MAX_PWM_WIDTH = 10
 
 class SsrDriver(Thread):
-    def __init__(self, group, tc_queue_dict, target_temp=20):
+    def __init__(self, target_pin, tc_readers_dict, target_temp=20):
         Thread.__init__(self)
-        self.ssr_pins = group["ssr_pins"]
-        print(f"init SSR PIN({self.ssr_pins})")
+        self.pin_num = target_pin["pin_num"]
+        print(f"init SSR PIN({self.pin_num})")
 
         # 設定
-        self.group = group
+        self.tc_index = target_pin["tc_index"]
         self.target_temp = target_temp
         self.kp = 0.1
-        self.tc_queue_dict = tc_queue_dict
+        self.tc_readers_dict = tc_readers_dict
 
         self.running = True     # 外部からスレッドを止める用フラグ
 
         self.d_temp = None      # 温度差（将来PID制御用）
 
         GPIO.setmode(GPIO.BCM)
-        for pin_num in self.ssr_pins:
-            GPIO.setup(pin_num, GPIO.OUT)
-            time.sleep(0.1)
-            GPIO.output(pin_num, False)
-            time.sleep(0.1)
+        GPIO.setup(self.pin_num, GPIO.OUT)
+        time.sleep(0.1)
+        GPIO.output(self.pin_num, False)
+        time.sleep(0.1)
 
 
     def run(self):
 
         time.sleep(0.2)
-        print(f"start SSR PIN({self.ssr_pins})")
+        print(f"start SSR PIN({self.ssr_pin})")
   
         while self.running:
 
             try:
                 list_tc_temp = []
-                # キューが空になるまで取得
-                while len(list_tc_temp) < 1:
-                    # キューから温度を取得
-                    for input_port in self.group["tc_index"]:
-                        # print(self.tc_queue_dict[input_port[0]])
-                        while not self.tc_queue_dict[input_port[0]][input_port[1]].empty():
-                            list_tc_temp.append(float(self.tc_queue_dict[input_port[0]][input_port[1]].get()))
-                    
+                # キューから温度を取得
+                for input_port in self.tc_index:
+                    if self.tc_readers_dict[input_port[0]].get_tc_now(input_port[1]) is not None:
+                        list_tc_temp.append(float(self.tc_readers_dict[input_port[0]].get_tc_now(input_port[1])))
+                
                 # キューに入っている温度の平均
-                tc_temp_avg = sum(list_tc_temp) / len(list_tc_temp)
+                if len(list_tc_temp) > 0:
+                    tc_temp_avg = sum(list_tc_temp) / len(list_tc_temp)
+                else:
+                    tc_temp_avg = 0
 
                 print(f"SSR({self.pin_num}) Tc: {tc_temp:.2f}")
                 pwm_width = self.get_pwm_width(self.target_temp, tc_temp_avg)
@@ -70,7 +69,7 @@ class SsrDriver(Thread):
                 self.close()
 
             
-        print(f"exit SSR: {self.ssr_pins}")
+        print(f"exit SSR: {self.ssr_pin}")
 
   
     def get_pwm_width(self, target_temp, tc_temp):
@@ -105,12 +104,10 @@ class SsrDriver(Thread):
         pwm_total_time = 1.0
         on_time = pwm_total_time * pwm_width / MAX_PWM_WIDTH
         off_time = pwm_total_time * (MAX_PWM_WIDTH - pwm_width) / MAX_PWM_WIDTH
-        # print(f"on: {on_time}, off: {off_time}")
-        for pin_num in self.ssr_pins:
-            GPIO.output(pin_num, True)
+        # print(f"on: {on_time}, off: {off_time}"
+        GPIO.output(self.ssr_pin, True)
         time.sleep(on_time)
-        for pin_num in self.ssr_pins:
-            GPIO.output(pin_num, False)
+        GPIO.output(self.pin_num, False)
         time.sleep(off_time)
 
         print(f"SSR({self.pin_num}) pwm_width = {pwm_width}")
@@ -125,6 +122,6 @@ class SsrDriver(Thread):
         """
         外部からSSR制御のスレッド停止用
         """
-        print(f"close SSR: {self.ssr_pins}")
+        print(f"close SSR: {self.pin_num}")
         self.running = False
 

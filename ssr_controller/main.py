@@ -27,25 +27,31 @@ def main():
     rate = 115200   # 通信レート
 
     # 温度用キュー（現在：全て同じキューを使用）
-    q_maxsize = 200
-    tc_queue_dict = {}
+    q_maxlen = 20
     tc_readers_dict = {}
     for str_port in config["Tc"].keys():
         print(str_port)
-        tc_queue_dict[str_port] = {}
-        for idx in config["Tc"][str_port]["index"]:
-            tc_queue_dict[str_port][idx] = queue.Queue(maxsize=q_maxsize)
+        tc_index = config["Tc"][str_port]["index"]
         
-        save_file = f"output_{str_port[-4]}.txt"   # str_port[-4]  −４の意味が不明 {201212}
-        tc_readers_dict[str_port] = TempReader(str_port=str_port, rate=rate, save_file=save_file, tc_queue_dict=tc_queue_dict)
+        save_file = f"output_{str_port[-1]}.txt"
+        tc_readers_dict[str_port] = TempReader(
+            str_port=str_port, 
+            rate=rate, 
+            tc_index=tc_index, 
+            q_maxlen=q_maxlen, 
+            save_file=save_file
+        )
         tc_readers_dict[str_port].start() # スレッドを起動
         time.sleep(1)
 
     # SSR制御スレッド
     # スレッド起動
     ssr_group_dict = {}
-    for i, group in enumerate(config["SSR"]):   #ここでGroup別にイテレーションLoopに。{201212}
-        ssr_group_dict[i] = SsrDriver(group, tc_queue_dict=tc_queue_dict)
+    for i, target_pin in enumerate(config["SSR"]):   #ここでGroup別にイテレーションLoopに。{201212}
+        ssr_group_dict[i] = SsrDriver(
+            target_pin,
+            tc_readers_dict=tc_readers_dict
+        )
         ssr_group_dict[i].start()    #ここで起動１
 
     # ここから Ctrl-C が押されるまで無限ループ
