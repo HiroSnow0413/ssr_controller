@@ -6,35 +6,55 @@
     },
     
     "explain": "SSRのリスト、group 別にpin_numとtc_indexは１つのロジックで稼働する",
+    "Group":[
+        {
+        	"explain": "SSRのピン番号でグループを指定し、グループごとに制御ロジックを別々に書く"
+        },
+        {
+        	"grp_num": 1,
+            "grp_pin": [2,3] 
+        },
+        {
+        	"grp_num": 2,
+            "grp_pin": [4,9]
+        }
+    ],
     "SSR":[
         {
             "pin_num" : 2,
             "tc_index" : [
-                ["/dev/ttyUSB0", 0],
-                ["/dev/ttyUSB0", 2]
-            ]
-        },
-        {
-            "pin_num" : 4,
-            "tc_index" : [
-                ["/dev/ttyUSB0", 0],
-                ["/dev/ttyUSB0", 2]
+                ["/dev/ttyUSB0", 2],
+                ["/dev/ttyUSB0", 3],
+                ["/dev/ttyUSB0", 4],
+                ["/dev/ttyUSB0", 5]
             ]
         },
         {
             "pin_num" : 3,
             "tc_index" : [
-                ["/dev/ttyUSB0", 1],
-                ["/dev/ttyUSB0", 2]
+                ["/dev/ttyUSB0", 2],
+                ["/dev/ttyUSB0", 3],
+                ["/dev/ttyUSB0", 4],
+                ["/dev/ttyUSB0", 5]
+            ]
+        },
+        {
+            "pin_num" : 4,
+            "tc_index" : [
+                ["/dev/ttyUSB0", 2],
+                ["/dev/ttyUSB0", 3],
+                ["/dev/ttyUSB0", 4],
+                ["/dev/ttyUSB0", 5]
             ]
         },
         {
             "pin_num" : 9,
             "tc_index" : [
-                ["/dev/ttyUSB0", 1],
-                ["/dev/ttyUSB0", 2]
+                ["/dev/ttyUSB0", 2],
+                ["/dev/ttyUSB0", 3],
+                ["/dev/ttyUSB0", 4],
+                ["/dev/ttyUSB0", 5]
             ]
         }
     ]
 }
-    
